@@ -82,8 +82,6 @@ else
     echo "Azure AD app already exists with ID: $app_id. Nothing to do..."
 fi
 
-echo "Assigning Storage Blob Data Contributor to Service Principal"
-az role assignment create --assignee "$app_id" --role "Storage Blob Data Contributor" --scope "/subscriptions/$CURRENT_SUBSCRIPTION"
 echo "Assigning Contributor to Service Principal"
 az role assignment create --assignee "$app_id" --role "Contributor" --scope "/subscriptions/$CURRENT_SUBSCRIPTION"
 

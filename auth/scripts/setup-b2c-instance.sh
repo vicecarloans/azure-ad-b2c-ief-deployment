@@ -318,43 +318,6 @@ setup_ief() {
         "$CURRENT_FILE_PATH/../base-policy/PasswordReset.xml" >> $password_reset_temp
     
     upload_policy "B2C_1A_PasswordReset" "$(cat $password_reset_temp)"
-
-    sleep 5
-    
-    # Custom Policy
-    # DisplayControl_TrustFrameworkExtensions
-    display_control_trust_framework_extensions=$(mktemp)
-    xmlstarlet ed -N cpim="http://schemas.microsoft.com/online/cpim/schemas/2013/06" \
-        -u "//cpim:TrustFrameworkPolicy/@TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        -u "//cpim:TrustFrameworkPolicy/@PublicPolicyUri" -v "http://$TENANT_NAME.onmicrosoft.com/B2C_1A_DisplayControl_sendgrid_Extensions" \
-        -u "//cpim:TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        -u "//cpim:InputParameter[@Id='template_id']/@Value" -v "$SENDGRID_TEMPLATE_ID" \
-        -u "//cpim:InputParameter[@Id='from.email']/@Value" -v "$SENDGRID_FROM_EMAIL" \
-        "$CURRENT_FILE_PATH/../policy/DisplayControl_TrustFrameworkExtensions.xml" >> $display_control_trust_framework_extensions
-    
-    upload_policy "B2C_1A_DisplayControl_sendgrid_Extensions" "$(cat $display_control_trust_framework_extensions)"
-    
-  
-    sleep 5
-    # DisplayControl_TrustFrameworkExtensions
-    display_control_sendgrid_signin=$(mktemp)
-    xmlstarlet ed -N cpim="http://schemas.microsoft.com/online/cpim/schemas/2013/06" \
-        -u "//cpim:TrustFrameworkPolicy/@TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        -u "//cpim:TrustFrameworkPolicy/@PublicPolicyUri" -v "http://$TENANT_NAME.onmicrosoft.com/B2C_1A_DisplayControl_sendgrid_Signin" \
-        -u "//cpim:TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        "$CURRENT_FILE_PATH/../policy/DisplayControl_SignUpOrSignin.xml" >> $display_control_sendgrid_signin
-    
-    upload_policy "B2C_1A_DisplayControl_sendgrid_Signin" "$(cat $display_control_sendgrid_signin)"
-
-    # DisplayControl_TrustFrameworkExtensions
-    display_control_sendgrid_passwordreset=$(mktemp)
-    xmlstarlet ed -N cpim="http://schemas.microsoft.com/online/cpim/schemas/2013/06" \
-        -u "//cpim:TrustFrameworkPolicy/@TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        -u "//cpim:TrustFrameworkPolicy/@PublicPolicyUri" -v "http://$TENANT_NAME.onmicrosoft.com/B2C_1A_DisplayControl_sendgrid_PasswordReset" \
-        -u "//cpim:TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
-        "$CURRENT_FILE_PATH/../policy/DisplayControl_PasswordReset.xml" >> $display_control_sendgrid_passwordreset
-    
-    upload_policy "B2C_1A_DisplayControl_sendgrid_PasswordReset" "$(cat $display_control_sendgrid_passwordreset)"
 }
 
 echo "👨‍💻 Login into Azure AD Tenant: $TENANT_NAME"
