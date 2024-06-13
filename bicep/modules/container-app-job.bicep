@@ -22,6 +22,7 @@ var secrets = map(
   [
     { name: 'service-principal-client-id', secretName: 'ServicePrincipalClientId' }
     { name: 'service-principal-client-secret', secretName: 'ServicePrincipalClientSecret' }
+    { name: 'sendgrid-secret', secretName: 'SendGridSecret' }
   ],
   secret => { name: secret.name, secretName: secret.secretName, vault: keyVaultName }
 )
@@ -62,6 +63,7 @@ resource job 'Microsoft.App/jobs@2023-05-01' = {
             [
               { name: 'SERVICE_PRINCIPAL_CLIENT_ID', secretRef: 'service-principal-client-id' }
               { name: 'SERVICE_PRINCIPAL_CLIENT_SECRET', secretRef: 'service-principal-client-secret' }
+              { name: 'SENDGRID_SECRET', secretRef: 'sendgrid-secret' }
             ],
             extraEnvVars
           )

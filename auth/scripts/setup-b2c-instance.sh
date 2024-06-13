@@ -2,9 +2,6 @@
 set -e
 
 # SendGrid
-SENDGRID_TEMPLATE_ID="template-id"
-SENDGRID_FROM_EMAIL="from-email"
-
 ROOT_TENANT_NAME="your-root-tenant-name"
 ROOT_SUBSCRIPTION="your-root-subscription-id"
 CALLBACK_URL="callback-url"
@@ -16,19 +13,13 @@ while [[ "$#" -gt 0 ]]; do
         # Without .omicrosoft.com
         --tenant-name) TENANT_NAME="$2"; shift ;;
         --callback-url) CALLBACK_URL="$2"; shift ;;
-        --sendgrid-template-id) SENDGRID_TEMPLATE_ID="$2"; shift ;;
-        --sendgrid-from-email) SENDGRID_FROM_EMAIL="$2"; shift ;;
     esac
     shift
 done
 
 # Required environment variables
-SENDGRID_SECRET="$SENDGRID_SECRET"
 SERVICE_PRINCIPAL_CLIENT_ID="$SERVICE_PRINCIPAL_CLIENT_ID"
 SERVICE_PRINCIPAL_CLIENT_SECRET="$SERVICE_PRINCIPAL_CLIENT_SECRET"
-
-# Static Variables
-ADMIN_CLIENT_PERMISSIONS=("Directory.ReadWrite.All" "User.ManageIdentities.All" "User.ReadWrite.All" "TrustFrameworkKeySet.ReadWrite.All" "Policy.ReadWrite.TrustFramework" "Policy.ReadWrite.PermissionGrant" "Policy.ReadWrite.ConsentRequest")
 
 MICROSOFT_GRAPH_APP_ID='00000003-0000-0000-c000-000000000000'  # This is a well-known Microsoft Graph application ID.
 
@@ -59,17 +50,6 @@ create_app_if_not_exist() {
     echo $app_id
 }
 
-# Create Client Application
-echo "Provisioning API Client Application..."
-standard_oidc_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"resourceAccess\":[{\"id\":\"37f7f235-527c-4136-accd-4a02d197296e\",\"type\":\"Scope\"},{\"id\":\"7427e0e9-2fba-42fe-b0c0-848c9e6a8182\",\"type\":\"Scope\"}]}"
-api_resource_access_payload="[$standard_oidc_access_payload]"
-client_app=$(create_app_if_not_exist "API Client" "--is-fallback-public-client false --enable-access-token-issuance true --sign-in-audience AzureADandPersonalMicrosoftAccount --web-redirect-uris $CALLBACK_URL --required-resource-accesses $api_resource_access_payload" )
-
-# Create Admin Client Application
-echo "Provisioning API Admin Client Application..."
-api_admin_resource_access_payload="[$standard_oidc_access_payload]"
-admin_client_app=$(create_app_if_not_exist "API Admin Client" "--is-fallback-public-client false --enable-access-token-issuance true --sign-in-audience AzureADandPersonalMicrosoftAccount --required-resource-accesses $api_resource_access_payload")
-
 grant_admin_consent() {
     local app_id="$1"
 
@@ -82,45 +62,6 @@ grant_admin_consent() {
 
     az ad app permission admin-consent --id $app_id
 }
-
-# Permission
-add_permission_if_not_exist() {
-    local app_id="$1"
-    local permission="$2"
-    local resource_app_id="${3:-$MICROSOFT_GRAPH_APP_ID}" 
-    # Role for Application level and Scope for Delegated permissions
-    local level="${4:-"Role"}"   
-    
-    if [ -z "$app_id" ]; then
-        echo "Application ID is required to add permissions"
-        exit 1
-    fi
-    # Get current permissions
-    current_permissions=$(az ad app show --id $app_id --query "requiredResourceAccess[].resourceAccess[].id" -o tsv)
-
-    echo "Querying permission ID for: $permission"
-
-    # Query for the permission ID based on the permission name
-    permission_data=$(az ad sp list --filter "appId eq '$resource_app_id'" --query "[].appRoles[?value=='$permission'].{id:id}" -o json)
-    permission_id=$(echo $permission_data | jq -r '[.[][0].id]' | jq -r '.[0]')
-
-    if [[ "$permission_id" != "null" && ! $current_permissions =~ $permission_id ]]; then
-        echo "Adding permission '$permission' (ID: $permission_id) to application '$app_id'"
-        az ad app permission add --id $app_id --api $resource_app_id --api-permissions "$permission_id=$level" --output none
-    else
-        echo "Permission ID for '$permission' not found or already exists in application '$app_id'"
-    fi
-    
-}
-
-echo "Provision Admin API Client Permissions..."
-for permission in "${ADMIN_CLIENT_PERMISSIONS[@]}"; do
-    add_permission_if_not_exist "$admin_client_app" "$permission"
-done
-sleep 30
-grant_admin_consent $admin_client_app
-echo "Provision API Client Permissions..."
-grant_admin_consent $client_app
 
 create_policy_key_if_not_exists() {
     local key_name="$1"
@@ -207,6 +148,7 @@ upload_policy () {
 
 # Generate Identity Experience Framework Application
 echo "Generating IdentityExperienceFramework application"
+standard_oidc_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"resourceAccess\":[{\"id\":\"37f7f235-527c-4136-accd-4a02d197296e\",\"type\":\"Scope\"},{\"id\":\"7427e0e9-2fba-42fe-b0c0-848c9e6a8182\",\"type\":\"Scope\"}]}"
 ief_app_resource_access_payload="[$standard_oidc_access_payload]"
 ief_app_id=$(create_app_if_not_exist "IdentityExperienceFramework" "--identifier-uris https://$TENANT_NAME.onmicrosoft.com/IdentityExperienceFramework --web-redirect-uris https://$TENANT_NAME.b2clogin.com/$TENANT_NAME.onmicrosoft.com --required-resource-accesses $ief_app_resource_access_payload")
 
@@ -239,9 +181,6 @@ setup_ief() {
     echo "Generating policy key sets TokenEncryptionKeyContainer."
     create_policy_key_if_not_exists "TokenEncryptionKeyContainer"
     generate_policy_key_if_not_exists "TokenEncryptionKeyContainer" "enc"
-    echo "Generating policy key sets for SendGrid."
-    create_policy_key_if_not_exists "SendGridSecret"
-    upload_policy_key_if_not_exists "SendGridSecret" "$SENDGRID_SECRET"
 
     # Generate Identity Experience Framework Policy
     CURRENT_FILE_PATH=$(dirname "$0")

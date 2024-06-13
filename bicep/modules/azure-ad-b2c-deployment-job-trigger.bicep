@@ -43,7 +43,8 @@ resource adb2cDeploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01
                               "SERVICE_PRINCIPAL_CLIENT_SECRET=secretref:service-principal-client-secret" \
                               "TENANT_NAME=$TENANT_NAME" \
                               "SENDGRID_TEMPLATE_ID=$SENDGRID_TEMPLATE_ID" \
-                              "SENDGRID_FROM_EMAIL=$SENDGRID_FROM_EMAIL"
+                              "SENDGRID_FROM_EMAIL=$SENDGRID_FROM_EMAIL" \
+                              "SENDGRID_SECRET=secretref:sendgrid-secret"
     '''
     environmentVariables: [
       {
