@@ -8,7 +8,7 @@ param acr AzureContainerRegistry
 
 param authImage { name: string, tag: string }
 
-param keyVault { name: string, subscriptionId: string, resourceGroup: string }
+param keyVault { name: string }
 
 @description('Environment name')
 param name string

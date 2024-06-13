@@ -1,0 +1,20 @@
+{
+    "name": "Azure IEF Deployment",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli": {
+            "installBicep": true,
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/azure-cli:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-bicep",
+                "ms-vscode.azurecli"
+            ]
+        }
+    },
+    "postCreateCommand": "chmod +x ./.devcontainer/init.sh && ./.devcontainer/init.sh"
+}

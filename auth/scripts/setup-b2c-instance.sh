@@ -7,6 +7,7 @@ SENDGRID_FROM_EMAIL="from-email"
 
 ROOT_TENANT_NAME="your-root-tenant-name"
 ROOT_SUBSCRIPTION="your-root-subscription-id"
+CALLBACK_URL="callback-url"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -14,7 +15,7 @@ while [[ "$#" -gt 0 ]]; do
         --root-subscription) ROOT_SUBSCRIPTION="$2"; shift ;;
         # Without .omicrosoft.com
         --tenant-name) TENANT_NAME="$2"; shift ;;
-        --api-base-url) API_BASE_URL="$2"; shift ;;
+        --callback-url) CALLBACK_URL="$2"; shift ;;
         --sendgrid-template-id) SENDGRID_TEMPLATE_ID="$2"; shift ;;
         --sendgrid-from-email) SENDGRID_FROM_EMAIL="$2"; shift ;;
     esac
@@ -58,15 +59,11 @@ create_app_if_not_exist() {
     echo $app_id
 }
 
-# Create or Get Application Groups
-echo "Provisioning Application Groups..."
-create_or_get_group
-
 # Create Client Application
 echo "Provisioning API Client Application..."
 standard_oidc_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"resourceAccess\":[{\"id\":\"37f7f235-527c-4136-accd-4a02d197296e\",\"type\":\"Scope\"},{\"id\":\"7427e0e9-2fba-42fe-b0c0-848c9e6a8182\",\"type\":\"Scope\"}]}"
 api_resource_access_payload="[$standard_oidc_access_payload]"
-client_app=$(create_app_if_not_exist "API Client" "--is-fallback-public-client false --enable-access-token-issuance true --sign-in-audience AzureADandPersonalMicrosoftAccount --web-redirect-uris $API_BASE_URL/warehouse/auth $API_BASE_URL/labtech/auth $API_BASE_URL/clinic/auth $API_BASE_URL/nurse/auth $API_BASE_URL/admin/auth $API_BASE_URL/portal/auth --required-resource-accesses $api_resource_access_payload" )
+client_app=$(create_app_if_not_exist "API Client" "--is-fallback-public-client false --enable-access-token-issuance true --sign-in-audience AzureADandPersonalMicrosoftAccount --web-redirect-uris $CALLBACK_URL --required-resource-accesses $api_resource_access_payload" )
 
 # Create Admin Client Application
 echo "Provisioning API Admin Client Application..."
@@ -208,6 +205,32 @@ upload_policy () {
         -d "$policy_file_content"
 }
 
+# Generate Identity Experience Framework Application
+echo "Generating IdentityExperienceFramework application"
+ief_app_resource_access_payload="[$standard_oidc_access_payload]"
+ief_app_id=$(create_app_if_not_exist "IdentityExperienceFramework" "--identifier-uris https://$TENANT_NAME.onmicrosoft.com/IdentityExperienceFramework --web-redirect-uris https://$TENANT_NAME.b2clogin.com/$TENANT_NAME.onmicrosoft.com --required-resource-accesses $ief_app_resource_access_payload")
+
+expose_ief_api "$ief_app_id"
+
+sleep 5
+
+grant_admin_consent $ief_app_id
+
+echo "Generating ProxyIdentityExperienceFramework application"
+
+echo $ief_app_id
+
+ief_api_access_id=$(az ad app show --id $ief_app_id --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+ief_resource_acccess_payload="{\"resourceAppId\":\"$ief_app_id\",\"resourceAccess\":[{\"id\":\"$ief_api_access_id\",\"type\":\"Scope\"}]}"
+graph_resource_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"resourceAccess\":[{\"id\":\"e1fe6dd8-ba31-4d61-89e7-88639da4683d\",\"type\":\"Scope\"},{\"id\":\"37f7f235-527c-4136-accd-4a02d197296e\",\"type\":\"Scope\"},{\"id\":\"7427e0e9-2fba-42fe-b0c0-848c9e6a8182\",\"type\":\"Scope\"}]}"
+proxy_ief_resource_access_payload="[$ief_resource_acccess_payload,$graph_resource_access_payload]"
+proxy_ief_app_id=$(create_app_if_not_exist "ProxyIdentityExperienceFramework" "--is-fallback-public-client --public-client-redirect-uris https://login.microsoftonline.com/$TENANT_NAME.onmicrosoft.com --required-resource-accesses $proxy_ief_resource_access_payload")
+
+sleep 5
+
+grant_admin_consent $proxy_ief_app_id
+   
+
 setup_ief() {
     # Generate Policy Key Sets
     echo "Generating policy key sets TokenSigningKeyContainer."
@@ -220,20 +243,6 @@ setup_ief() {
     create_policy_key_if_not_exists "SendGridSecret"
     upload_policy_key_if_not_exists "SendGridSecret" "$SENDGRID_SECRET"
 
-    # Generate Identity Experience Framework Application
-    echo "Generating IdentityExperienceFramework application"
-    ief_app_id=$(create_app_if_not_exist "IdentityExperienceFramework" "--identifier-uris https://$TENANT_NAME.onmicrosoft.com/IdentityExperienceFramework --web-redirect-uris https://$TENANT_NAME.b2clogin.com/$TENANT_NAME.onmicrosoft.com")
-    
-    expose_ief_api "$ief_app_id"
-    echo "Generating ProxyIdentityExperienceFramework application"
-    echo $ief_app_id
-
-    ief_api_access_id=$(az ad app show --id $ief_app_id --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
-    ief_resource_acccess_payload="{\"resourceAppId\":\"$ief_app_id\",\"resourceAccess\":[{\"id\":\"$ief_api_access_id\",\"type\":\"Scope\"}]}"
-    graph_resource_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"resourceAccess\":[{\"id\":\"e1fe6dd8-ba31-4d61-89e7-88639da4683d\",\"type\":\"Scope\"}]}"
-    resource_access_payload="[$ief_resource_acccess_payload,$graph_resource_access_payload]"
-    proxy_ief_app_id=$(create_app_if_not_exist "ProxyIdentityExperienceFramework" "--is-fallback-public-client --public-client-redirect-uris https://login.microsoftonline.com/$TENANT_NAME.onmicrosoft.com --required-resource-accesses $resource_access_payload")
-    
     # Generate Identity Experience Framework Policy
     CURRENT_FILE_PATH=$(dirname "$0")
 
@@ -345,7 +354,7 @@ setup_ief() {
         -u "//cpim:TenantId" -v "$TENANT_NAME.onmicrosoft.com" \
         "$CURRENT_FILE_PATH/../policy/DisplayControl_PasswordReset.xml" >> $display_control_sendgrid_passwordreset
     
-    upload_policy "B2C_1A_DisplayControl_sendgrid_PasswordReset" "$(cat $display_control_sendgrid_signin)"
+    upload_policy "B2C_1A_DisplayControl_sendgrid_PasswordReset" "$(cat $display_control_sendgrid_passwordreset)"
 }
 
 echo "👨‍💻 Login into Azure AD Tenant: $TENANT_NAME"
