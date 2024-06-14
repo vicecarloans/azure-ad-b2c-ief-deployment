@@ -18,7 +18,7 @@ while [[ "$#" -gt 0 ]]; do
         --root-tenant-name) ROOT_TENANT_NAME="$2"; shift ;;
         --vault-name) VAULT_NAME="$2"; shift ;;
         # Without .onmicrosoft.com
-        --azure-ad-b2c-tenant-name) AZURE_AD_B2C_TENANT_NAME="$2"; shift ;;
+        --tenant-name) AZURE_AD_B2C_TENANT_NAME="$2"; shift ;;
     esac
     shift
 done
