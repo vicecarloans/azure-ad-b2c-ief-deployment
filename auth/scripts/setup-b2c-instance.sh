@@ -12,7 +12,6 @@ while [[ "$#" -gt 0 ]]; do
         --root-subscription) ROOT_SUBSCRIPTION="$2"; shift ;;
         # Without .omicrosoft.com
         --tenant-name) TENANT_NAME="$2"; shift ;;
-        --callback-url) CALLBACK_URL="$2"; shift ;;
     esac
     shift
 done

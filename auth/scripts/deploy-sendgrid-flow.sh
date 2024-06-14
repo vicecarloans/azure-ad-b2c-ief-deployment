@@ -22,7 +22,7 @@ fi
 
 
 echo "👨‍💻 Login into Azure AD Tenant: $TENANT_NAME"
-az login --service-principal -u $SERVICE_PRINCIPAL_CLIENT_ID -p $SERVICE_PRINCIPAL_CLIENT_SECRET --tenant "$TENANT_NAME.onmicrosoft.com" --allow-no-subscription
+az login --tenant "$TENANT_NAME.onmicrosoft.com" --allow-no-subscription
 
 CURRENT_FILE_PATH=$(dirname "$0")
 TENANT_ID=$(az account show --query id -o tsv)
@@ -136,6 +136,9 @@ upload_policy_key_if_not_exists() {
     fi
 }
 
+echo "Login using Service Principal..."
+
+az login --service-principal -u $SERVICE_PRINCIPAL_CLIENT_ID -p $SERVICE_PRINCIPAL_CLIENT_SECRET --tenant "$TENANT_NAME.onmicrosoft.com" --allow-no-subscription
 
 create_policy_key_if_not_exists "SendGridSecret"
 upload_policy_key_if_not_exists "SendGridSecret" "$SENDGRID_SECRET"
