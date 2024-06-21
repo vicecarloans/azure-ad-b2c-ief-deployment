@@ -1,8 +1,12 @@
-# azure-ad-b2c-ief-deployment
- Azure AD B2C IEF Deployment Kit
+# Azure AD B2C IEF Starter Kit
 
-# Prerequisite
+This repo serves as a starter kit for setting up Identity Experience Framework (IEF) for your Azure AD B2C instance.
 
-az cli version 2.60.0
+# Prerequisites
 
-xmlstarlet
+1. Docker
+2. Visual Studio Code with DevContainer setup
+
+# Tutorial
+
+You can follow this guide here

@@ -4,7 +4,6 @@ set -e
 # SendGrid
 ROOT_TENANT_NAME="your-root-tenant-name"
 ROOT_SUBSCRIPTION="your-root-subscription-id"
-CALLBACK_URL="callback-url"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -158,8 +157,6 @@ sleep 5
 grant_admin_consent $ief_app_id
 
 echo "Generating ProxyIdentityExperienceFramework application"
-
-echo $ief_app_id
 
 ief_api_access_id=$(az ad app show --id $ief_app_id --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
 ief_resource_acccess_payload="{\"resourceAppId\":\"$ief_app_id\",\"resourceAccess\":[{\"id\":\"$ief_api_access_id\",\"type\":\"Scope\"}]}"
