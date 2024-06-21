@@ -152,7 +152,7 @@ ief_app_id=$(create_app_if_not_exist "IdentityExperienceFramework" "--identifier
 
 expose_ief_api "$ief_app_id"
 
-sleep 5
+sleep 30
 
 grant_admin_consent $ief_app_id
 
@@ -164,7 +164,7 @@ graph_resource_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"
 proxy_ief_resource_access_payload="[$ief_resource_acccess_payload,$graph_resource_access_payload]"
 proxy_ief_app_id=$(create_app_if_not_exist "ProxyIdentityExperienceFramework" "--is-fallback-public-client --public-client-redirect-uris https://login.microsoftonline.com/$TENANT_NAME.onmicrosoft.com --required-resource-accesses $proxy_ief_resource_access_payload")
 
-sleep 5
+sleep 30
 
 grant_admin_consent $proxy_ief_app_id
    
