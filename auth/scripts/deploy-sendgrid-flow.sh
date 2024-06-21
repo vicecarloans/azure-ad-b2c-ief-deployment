@@ -97,6 +97,8 @@ standard_oidc_access_payload="{\"resourceAppId\":\"$MICROSOFT_GRAPH_APP_ID\",\"r
 api_resource_access_payload="[$standard_oidc_access_payload]"
 client_app=$(create_app_if_not_exist "API Client" "--is-fallback-public-client false --enable-access-token-issuance true --sign-in-audience AzureADandPersonalMicrosoftAccount --web-redirect-uris $CALLBACK_URL --required-resource-accesses $api_resource_access_payload" )
 
+sleep 30
+
 echo "Provision API Client Permissions..."
 grant_admin_consent $client_app
 
